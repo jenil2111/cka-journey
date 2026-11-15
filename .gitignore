@@ -1,0 +1,15 @@
+# Never commit cluster credentials or secrets
+admin.conf
+*.kubeconfig
+kubeconfig*
+.kube/
+*.key
+*.pem
+*.crt
+*join-command*
+*token*
+
+# Editor / OS junk
+*.swp
+.DS_Store
+Thumbs.db
