@@ -144,7 +144,7 @@ type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh <user>@cp "mkdir -p ~/.ssh && ca
 # repeat for worker1, worker2, spare
 ```
 
-📸 Snapshot all 4: **`ready-os`**
+📸 Snapshot worker1, worker2 and spare: **`base-os`**. (Clones don't copy snapshots, so each clone needs its own. cp already has `base-os` from §2.)
 
 ---
 
@@ -329,9 +329,25 @@ worker2   Ready    <none>          v1.34.13   192.168.11.12   containerd://2.2.1
 ---
 
 ## 📸 Snapshot map
+
+### What exists on each VM
+| VM | Snapshot chain (VMware Snapshot Manager) |
+|---|---|
+| cp | `base-os` → `k8s-prereqs` → `k8s-ready` |
+| worker1 | `base-os` → `k8s-prereqs` → `k8s-ready` |
+| worker2 | `base-os` → `k8s-prereqs` → `k8s-ready` |
+| spare | `base-os` (stays a bare node for join practice) |
+
+> Clones **don't inherit snapshots**. Each VM's chain was taken on that VM after cloning.
+
+### What each snapshot means
 | Snapshot | State | Use it to… |
 |---|---|---|
-| `base-os` | Fresh Ubuntu (cp) | Clone new nodes |
-| `ready-os` | Unique identities, hosts, SSH | Redo node prep |
-| `k8s-prereqs` | S‑M‑S‑C‑K done | Redo `kubeadm init` |
-| `k8s-ready` | Working 3-node cluster | **Reset after every break-and-fix exercise** |
+| `base-os` | Ubuntu installed and updated. On clones: own hostname, IP, machine-id, SSH keys. | Clone new nodes (cp) · redo node prep from scratch |
+| `k8s-prereqs` | S‑M‑S‑C‑K done (swap off, modules, sysctl, containerd, kube tools) | Redo `kubeadm init` / `join` |
+| `k8s-ready` | Working 3-node cluster with Calico | **Reset after every break-and-fix exercise** |
+
+### Restoring
+**VM → Snapshot → Snapshot Manager → select the snapshot → Go To**
+- Broke the **whole cluster** (control plane, etcd, certificates)? Restore **all three** nodes to `k8s-ready`. Mixing old and new nodes leaves them disagreeing about cluster state.
+- Broke **one worker** (e.g. stopped its kubelet)? Restoring just that worker is fine.
